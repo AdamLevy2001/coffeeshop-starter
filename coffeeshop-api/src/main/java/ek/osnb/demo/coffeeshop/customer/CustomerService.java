@@ -2,6 +2,7 @@ package ek.osnb.demo.coffeeshop.customer;
 
 import ek.osnb.demo.coffeeshop.common.ConflictException;
 import ek.osnb.demo.coffeeshop.common.NotFoundException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -101,5 +102,33 @@ class CustomerService implements CustomerApi {
         }
 
         return result.get();
+    }
+
+    @Transactional(readOnly = true)
+    CustomerResponse showCustomer(String email) {
+        Customer customer = repository.findByEmail(Customer.normalizeEmail(email))
+                .orElseThrow(() -> new NotFoundException("Customer profile not found"));
+        return CustomerMapper.toResponse(customer);
+    }
+
+    CustomerResponse saveCustomer(String email, ProfileRequest request) {
+        Optional<Customer> existing = repository.findByEmail(Customer.normalizeEmail(email));
+
+        if (existing.isPresent()) {
+            Customer customer = existing.get();
+            customer.updateDetails(request.name(),
+                    email,
+                    request.street(),
+                    request.postalCode(),
+                    request.city());
+            return CustomerMapper.toResponse(customer);
+        }
+
+        Customer customer = Customer.create(request.name(),
+                email,
+                request.street(),
+                request.postalCode(),
+                request.city());
+        return CustomerMapper.toResponse(repository.save(customer));
     }
 }
