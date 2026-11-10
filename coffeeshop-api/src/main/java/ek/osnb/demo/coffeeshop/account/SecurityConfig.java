@@ -19,8 +19,11 @@ class SecurityConfig {
         http
                 .csrf(csrf -> csrf.spa())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/me").authenticated()
-                        .anyRequest().permitAll()
+                        .requestMatchers("/api/products/**", "/api/categories/**", "/api/carts/**",
+                                "/api/register", "/api/login", "/error").permitAll()
+                        .requestMatchers("/api/staff/**", "/api/orders/*/ship").hasRole("STAFF")
+                        .requestMatchers("/api/customers/**", "/api/orders/**").hasRole("CUSTOMER")
+                        .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/login")
