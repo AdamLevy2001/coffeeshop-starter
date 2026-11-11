@@ -13,9 +13,10 @@ class AssistantController {
 
     private final ChatClient chatClient;
 
-    AssistantController(ChatClient.Builder builder, ChatMemory chatMemory) {
+    AssistantController(ChatClient.Builder builder, ChatMemory chatMemory, CatalogTools catalogTools) {
         this.chatClient=builder
-                .defaultSystem("You are an assistant for a coffeeshop, you answer is short, you speak the same languange as the customer and if you dont know the question just say dont know, instead of invent products, prices and orders")
+                .defaultTools(catalogTools)
+                .defaultSystem("You are an assistant for a coffeeshop, you answer is short, you speak the same languange as the customer and if you dont know the question just say dont know, instead of invent products, prices and orders and also always use tools")
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
