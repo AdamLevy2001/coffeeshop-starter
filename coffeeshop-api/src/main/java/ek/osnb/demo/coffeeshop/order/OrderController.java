@@ -1,8 +1,10 @@
 package ek.osnb.demo.coffeeshop.order;
 
 import jakarta.validation.Valid;
+import org.springframework.context.support.BeanDefinitionDsl;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -38,7 +41,15 @@ class OrderController {
 
     @GetMapping("/{id}")
     OrderResponse findById(@PathVariable Long id, Authentication auth) {
-        return service.findById(auth.getName(), id);
+        boolean isStaff = auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(Objects::nonNull)
+                .anyMatch(p -> p.equals("ROLE_STAFF"));
+        if (isStaff) {
+            return service.findOrderForStaff(id);
+        } else {
+            return service.findById(auth.getName(), id);
+        }
     }
 
     @PostMapping("/{id}/cancel")

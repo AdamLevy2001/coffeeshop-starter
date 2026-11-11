@@ -9,7 +9,6 @@ import ek.osnb.demo.coffeeshop.common.ConflictException;
 import ek.osnb.demo.coffeeshop.common.NotFoundException;
 import ek.osnb.demo.coffeeshop.customer.CustomerApi;
 import ek.osnb.demo.coffeeshop.customer.CustomerInfo;
-import org.aspectj.weaver.ast.Or;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -189,5 +188,22 @@ class OrderService implements OrderApi {
         Order order = repository.findByIdAndCustomerId(id, customerInfo.id())
                 .orElseThrow(() -> new NotFoundException("Order not found"));
         return order;
+    }
+
+    @Transactional(readOnly = true)
+    OrderResponse findOrderForStaff(Long id) {
+        return OrderMapper.toResponse(findOrder(id));
+    }
+
+    @Transactional(readOnly = true)
+    List<OrderSummaryResponse> findAllOrders() {
+        List<OrderSummaryResponse> orders = new ArrayList<>();
+
+        for (Order order : repository.findAllByOrderByPlacedAtDesc()) {
+            orders.add(OrderMapper.toSummary(order));
+        }
+
+        return orders;
+
     }
 }

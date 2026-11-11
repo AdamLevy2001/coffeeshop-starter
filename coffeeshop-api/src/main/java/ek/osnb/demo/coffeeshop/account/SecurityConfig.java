@@ -3,6 +3,7 @@ package ek.osnb.demo.coffeeshop.account;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,6 +23,7 @@ class SecurityConfig {
                         .requestMatchers("/api/products/**", "/api/categories/**", "/api/carts/**",
                                 "/api/register", "/api/login", "/error").permitAll()
                         .requestMatchers("/api/staff/**", "/api/orders/*/ship").hasRole("STAFF")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/*").hasAnyRole("STAFF", "CUSTOMER")
                         .requestMatchers("/api/customers/**", "/api/orders/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()
                 )
