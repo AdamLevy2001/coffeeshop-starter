@@ -9,15 +9,13 @@ import ek.osnb.demo.coffeeshop.common.ConflictException;
 import ek.osnb.demo.coffeeshop.common.NotFoundException;
 import ek.osnb.demo.coffeeshop.customer.CustomerApi;
 import ek.osnb.demo.coffeeshop.customer.CustomerInfo;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Orders use three other features, always through their public *Api interface:
@@ -56,8 +54,8 @@ class OrderService implements OrderApi {
     // Everything in here happens in one transaction: if any step fails (e.g. one
     // product is out of stock), nothing is saved - no stock is taken, no order is
     // created and the cart keeps its items.
-    OrderResponse placeOrder(PlaceOrderRequest request) {
-        CustomerInfo customer = customers.getCustomer(request.customerId());
+    OrderResponse placeOrder(String email, PlaceOrderRequest request) {
+        CustomerInfo customer = findProfile(email);
         CartInfo cart = carts.getCart(request.cartId());
 
         if (cart.isEmpty()) {
@@ -101,13 +99,16 @@ class OrderService implements OrderApi {
     }
 
     @Transactional(readOnly = true)
-    List<OrderSummaryResponse> findByCustomer(Long customerId) {
-        // 404 for an unknown customer instead of an empty list
-        customers.getCustomer(customerId);
+    List<OrderSummaryResponse> findByCustomer(String email) {
+        Optional<CustomerInfo> existing = customers.findCustomerByEmail(email);
+
+        if (existing.isEmpty()) {
+            return List.of();
+        }
 
         List<OrderSummaryResponse> summaries = new ArrayList<>();
 
-        for (Order order : repository.findByCustomerIdOrderByPlacedAtDesc(customerId)) {
+        for (Order order : repository.findByCustomerIdOrderByPlacedAtDesc(existing.get().id())) {
             summaries.add(OrderMapper.toSummary(order));
         }
 
@@ -115,12 +116,12 @@ class OrderService implements OrderApi {
     }
 
     @Transactional(readOnly = true)
-    OrderResponse findById(Long id) {
-        return OrderMapper.toResponse(findOrder(id));
+    OrderResponse findById(String email, Long id) {
+        return OrderMapper.toResponse(findOwnOrder(email, id));
     }
 
-    OrderResponse cancel(Long id) {
-        Order order = findOrder(id);
+    OrderResponse cancel(String email, Long id) {
+        Order order = findOwnOrder(email, id);
         order.cancel();
 
         // The items go back on the shelf
@@ -174,5 +175,19 @@ class OrderService implements OrderApi {
         }
 
         return result.get();
+    }
+
+    private CustomerInfo findProfile(String email) {
+        CustomerInfo customerInfo = customers.findCustomerByEmail(email)
+                .orElseThrow(() -> new ConflictException("Please fill in your delivery details first"));
+        return customerInfo;
+    }
+
+    private Order findOwnOrder(String email, Long id) {
+        CustomerInfo customerInfo = customers.findCustomerByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+        Order order = repository.findByIdAndCustomerId(id, customerInfo.id())
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+        return order;
     }
 }
