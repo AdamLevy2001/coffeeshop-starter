@@ -67,19 +67,13 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-    </dependencies>
-
-    <!--
-        The versions of every Spring AI module. To use Spring AI, add the starter
-        to <dependencies> above, without a <version> (this BOM chooses it):
-
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
 
-        The model settings are already in application.properties.
-    -->
+    </dependencies>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
