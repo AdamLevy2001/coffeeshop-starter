@@ -18,6 +18,8 @@ class CustomerService implements CustomerApi {
 
     // ---------- Used by CustomerController ----------
 
+    //I den her metode henter jeg profilen for den kunde som er logget ind
+    //Hvis den ikke kan finde profilen, kaster jeg en ikke fundet exception, hvilket er 404 som passer med frontenden
     @Transactional(readOnly = true)
     CustomerResponse showCustomer(String email) {
         Customer customer = repository.findByEmail(Customer.normalizeEmail(email))
@@ -25,6 +27,8 @@ class CustomerService implements CustomerApi {
         return CustomerMapper.toResponse(customer);
     }
 
+    //I den her metode opretter jeg en ny kunde med en profil eller opdaterer med en eksisterende profil, afhængigt om profilen findes
+    //Emailen kommer fra login og ikke fra request, fordi at en kunde ikke skal ændre en andens profil
     CustomerResponse saveCustomer(String email, ProfileRequest request) {
         Optional<Customer> existing = repository.findByEmail(Customer.normalizeEmail(email));
 

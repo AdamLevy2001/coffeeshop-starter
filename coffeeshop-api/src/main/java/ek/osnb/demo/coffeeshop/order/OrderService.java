@@ -53,6 +53,7 @@ class OrderService implements OrderApi {
     // Everything in here happens in one transaction: if any step fails (e.g. one
     // product is out of stock), nothing is saved - no stock is taken, no order is
     // created and the cart keeps its items.
+    //PlaceOrder, findByCustomer, findById og cancel finder kunden via email fra login i stedet for request.customerId()
     OrderResponse placeOrder(String email, PlaceOrderRequest request) {
         CustomerInfo customer = findProfile(email);
         CartInfo cart = carts.getCart(request.cartId());
@@ -97,6 +98,7 @@ class OrderService implements OrderApi {
         return OrderMapper.toResponse(order);
     }
 
+    // I stedet for at kaste en 404 exception, laver jeg en tom ordre liste, hvis profilen ikke findes
     @Transactional(readOnly = true)
     List<OrderSummaryResponse> findByCustomer(String email) {
         Optional<CustomerInfo> existing = customers.findCustomerByEmail(email);
@@ -176,12 +178,17 @@ class OrderService implements OrderApi {
         return result.get();
     }
 
+    //En hjælpemetode der bruges af placeOrder, som finder kunden via email
+    //Hvis kunden eller profilen ikke findes kaster jeg en konflikt exception (409) og siger at kunden skal udfylde sin profil
     private CustomerInfo findProfile(String email) {
         CustomerInfo customerInfo = customers.findCustomerByEmail(email)
                 .orElseThrow(() -> new ConflictException("Please fill in your delivery details first"));
         return customerInfo;
     }
 
+    //En hjælpemetode, der finder en ordre, men kun hvis den tilhører en kunde, som er logget ind
+    //Hvis kunden ikke har en profil, eller ordren tilhører en anden, kaster jeg en ikke fundet exception (404)
+    //Jeg bruger 404 i stedet for 403, så man ikke kan gætte sig til, hvilke ordrer der findes hos andre kunder
     private Order findOwnOrder(String email, Long id) {
         CustomerInfo customerInfo = customers.findCustomerByEmail(email)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
@@ -189,12 +196,13 @@ class OrderService implements OrderApi {
                 .orElseThrow(() -> new NotFoundException("Order not found"));
         return order;
     }
-
+    //Finder en ordre for staff
     @Transactional(readOnly = true)
     OrderResponse findOrderForStaff(Long id) {
         return OrderMapper.toResponse(findOrder(id));
     }
 
+    //Finder alle ordre for staff
     @Transactional(readOnly = true)
     List<OrderSummaryResponse> findAllOrders() {
         List<OrderSummaryResponse> orders = new ArrayList<>();
